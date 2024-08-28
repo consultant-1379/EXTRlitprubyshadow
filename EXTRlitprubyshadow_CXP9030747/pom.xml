@@ -1,0 +1,154 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.ericsson.nms.litp.3pps</groupId>
+    <artifactId>EXTRlitprubyshadow_CXP9030747</artifactId>
+    <packaging>rpm</packaging>
+    <name>[${project.parent.artifactId}] RPM module</name>
+    <description>LITP Ruby Shadow 3PP</description>
+
+    <parent>
+        <groupId>com.ericsson.nms.litp.3pps</groupId>
+        <artifactId>EXTRlitprubyshadow</artifactId>
+        <version>2.3.2-SNAPSHOT</version>
+    </parent>
+    <properties>
+    <!-- publishes the rpm module to the ci portal -->
+        <publish_artifact>true</publish_artifact>
+        <packaging.type>rpm</packaging.type>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.5</version>
+                <executions>
+                    <execution>
+                        <!-- Download Ruby Shadow from prototype repo -->
+                        <id>unpack_ruby-shadow</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.fedoraproject</groupId>
+                                    <artifactId>ruby-shadow</artifactId>
+                                    <version>${ruby-shadow.version}</version>
+                                    <type>zip</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/src/</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <executable>ruby</executable>
+                            <workingDirectory>${project.build.directory}/src/ruby-shadow-${ruby-shadow.version}/</workingDirectory>
+                            <arguments>
+                                <argument>extconf.rb</argument>
+                            </arguments>
+                        </configuration>
+                        <id>configure_ruby-shadow</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <configuration>
+                            <executable>make</executable>
+                            <workingDirectory>${project.build.directory}/src/ruby-shadow-${ruby-shadow.version}/</workingDirectory>
+                        </configuration>
+                        <id>compile_ruby-shadow</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>rpm-maven-plugin</artifactId>
+                <version>2.1-alpha-1</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <needarch>x86_64</needarch>
+                    <group>System Environment/Libraries</group>
+                    <summary>Ruby bindings for shadow password access</summary>
+                    <description>
+ruby-shadow ${ruby-shadow.version} repackaged by Ericsson.
+Ruby bindings for shadow password access.
+                    </description>
+                    <requires>
+                        <require>libc.so.6()(64bit)</require>
+                        <require>libc.so.6(GLIBC_2.2.5)(64bit)</require>
+                        <require>libcrypt.so.1()(64bit)</require>
+                        <require>libdl.so.2()(64bit)</require>
+                        <require>libm.so.6()(64bit)</require>
+                        <require>libpthread.so.0()(64bit)</require>
+                        <require>librt.so.1()(64bit)</require>
+                        <require>libruby.so.2.0()(64bit)</require>
+                        <require>rpmlib(CompressedFileNames) &lt;= 3.0.4-1</require>
+                        <require>rpmlib(FileDigests) &lt;= 4.6.0-1</require>
+                        <require>rpmlib(PayloadFilesHavePrefix) &lt;= 4.0-1</require>
+                        <require>rpmlib(VersionedDependencies) &lt;= 3.0.3-1</require>
+                        <require>ruby(runtime_executable) = 2.0.0</require>
+                        <require>rpmlib(PayloadIsXz) &lt;= 5.2-1</require>
+                        <require>rtld(GNU_HASH)</require>
+                    </requires>
+                    <provides>
+                        <provide>ruby(shadow) = ${ruby-shadow.version}</provide>
+                        <provide>shadow.so()(64bit)</provide>
+                        <provide>ruby-shadow = ${ruby-shadow.version}</provide>
+                        <provide>ruby-shadow(x86-64) = ${ruby-shadow.version}</provide>
+                    </provides>
+                    <mappings>
+                        <mapping>
+                            <directory>/usr/lib64/ruby/vendor_ruby/</directory>
+                            <configuration>false</configuration>
+                            <sources>
+                                <source>
+                                    <location>${project.build.directory}/src/ruby-shadow-${ruby-shadow.version}/</location>
+                                    <includes>
+                                        <include>shadow.so</include>
+                                    </includes>
+                                </source>
+                                <!--
+                                <softlinkSource>
+                                    <destination>shadow.so</destination>
+                                    <location>shadow.so.....</location>
+                                </softlinkSource>
+                                -->
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <directory>/usr/share/doc/ruby-shadow-${ruby-shadow.version}/</directory>
+                            <configuration>false</configuration>
+                            <sources>
+                                <source>
+                                    <location>${project.build.directory}/src/ruby-shadow-${ruby-shadow.version}/</location>
+                                    <includes>
+                                        <include>HISTORY</include>
+                                        <include>README</include>
+                                        <include>README.euc</include>
+                                    </includes>
+                                </source>
+                            </sources>
+                        </mapping>
+                    </mappings>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
